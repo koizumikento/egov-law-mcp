@@ -1,6 +1,6 @@
 # egov-law-mcp
 
-日本の法令を名前で探し、指定した条文と参照した法令の版を確認できます。読み取り専用で、APIキーの設定は不要です。[uv](https://docs.astral.sh/uv/) と Git が必要です。Python 3.12以上に対応しています。
+日本の法令を法令名や本文中の語句から探し、条文・附則・別表や改正履歴を確認できます。読み取り専用で、APIキーの設定は不要です。[uv](https://docs.astral.sh/uv/) と Git が必要です。Python 3.12以上に対応しています。
 
 ## MCPクライアントに登録する
 
@@ -49,15 +49,39 @@ Codexのデスクトップアプリでは、設定の「MCP servers」でSTDIO�
 登録後は、チャットで次のように聞けます。
 
 > 民法第709条の条文と、参照した法令の版を教えて。
+>
+> 民法の改正履歴を調べて。施行日と、該当する版を参照するためのIDも教えて。
 
 ## ツール
 
 | ツール | 用途 |
 | --- | --- |
-| `search_laws` | 法令名・任意の基準日で検索 |
-| `get_law_article` | 法令ID・条番号で本則の条文と版情報を取得 |
+| `search_laws` | 法令名から法令IDを探す。基準日を指定できる |
+| `search_law_text` | 本文中の語句を検索し、該当箇所の抜粋を読む。法令番号や基準日で絞り込める |
+| `list_law_revisions` | 法令IDから施行日と改正履歴IDを確認する。施行日の範囲で絞り込める |
+| `get_law_article` | 法令IDまたは改正履歴IDと条番号から、本則の1条を取得する |
+| `get_law_text` | 法令全体、本則、個別の附則や別表などをXMLで読む |
 
-法令名で検索し、法令IDまたは改正履歴IDで本則の条文を取得します。日付を指定した場合は指定時点の版を参照します。
+### 版を指定する
+
+`get_law_article` と `get_law_text` では、法令IDに基準日（`as_of`）を添えると、その時点の版を取得できます。版が決まっている場合は、`law_id` に改正履歴IDを渡します。取得結果の `source_url` で参照した版を開けます。改正履歴には将来施行の版も含まれるため、施行日を確認してください。
+
+### 附則と別表を読む
+
+| `get_law_text` の `section` | 取得範囲 |
+| --- | --- |
+| `all`（既定） | 法令全体 |
+| `main` | 本則全体 |
+| `supplementary` | 附則。文書内の出現順を `section_number` に指定 |
+| `appendix` | 別表など。`appendix_type` で種類を選び、同じ種類の出現順を `section_number` に指定 |
+
+`section_number` は1始まりで、省略すると1件目を取得します。`appendix_type` は `table`（別表、既定）、`style`（別記様式）、`format`（別記書式）、`appendix`（付録）、`figure`（別図）から選べます。個別に選べる種類は法令APIの要素指定に対応しています。添付画像やPDFなどのファイル本体は取得対象外です。
+
+### 続きを取得する
+
+- 本文検索の `limit` には、法令を横断して取得するキーワードの出現箇所数を指定します。`next_offset` が返ったら、同じ検索条件の `offset` に渡します。
+- 改正履歴はAPIが返した順にページ分けします。`next_offset` が `null` になるまで、同じ条件で続きを取得できます。
+- 法令XMLは `text` に既定で8,000文字、最大20,000文字ずつ返します。XMLタグの途中で区切られることがあるため、完全なXMLが必要な場合は `next_offset` が `null` になるまで同じセクションを取得し、`text` を順につなぎます。途中で版が変わらないよう、2ページ目以降は最初に返った `revision_info.law_revision_id` を指定してください。ページごとにAPIから選択範囲を取得し、返却時に分割します。
 
 ## CLI
 
@@ -72,6 +96,10 @@ uv sync --locked
 ```sh
 uv run egov-law-mcp search-laws --title "民法" --limit 1
 uv run egov-law-mcp get-law-article --law-id 129AC0000000089 --article 709
+uv run egov-law-mcp search-law-text --keyword "善意" --limit 3
+uv run egov-law-mcp list-law-revisions --law-id 129AC0000000089 --limit 3
+uv run egov-law-mcp get-law-text --law-id 129AC0000000089 --section supplementary
+uv run egov-law-mcp get-law-text --law-id 322CO0000000016 --section appendix --limit 1000
 ```
 
 結果は標準出力にUTF-8のJSONで出力します。コマンドの引数は `uv run egov-law-mcp search-laws --help` で確認できます。
@@ -83,13 +111,13 @@ uv run egov-law-mcp get-law-article --law-id 129AC0000000089 --article 709
 ```python
 import asyncio
 
-from egov_law_mcp import search_laws
+from egov_law_mcp import get_law_text
 
-result = asyncio.run(search_laws(title="民法", limit=1))
-print(result)
+page = asyncio.run(get_law_text("129AC0000000089", section="supplementary"))
+print(page["text"])
 ```
 
-公開関数 `search_laws`、`get_law_article` を利用できます。イベントループがある環境では、関数を直接 `await` します。
+「ツール」表の各関数を利用できます。イベントループがある環境では、関数を直接 `await` します。
 
 ## 出典と利用条件
 
