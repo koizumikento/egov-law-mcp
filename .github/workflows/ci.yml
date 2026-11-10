@@ -27,5 +27,5 @@ jobs:
           import asyncio
           from egov_law_mcp import create_server
 
-          assert len(asyncio.run(create_server().list_tools())) == 2
+          assert len(asyncio.run(create_server().list_tools())) == 5
           PY
