@@ -34,6 +34,30 @@ uv sync --locked
 
 法令名で検索し、法令IDまたは改正履歴IDで本則の条文を取得します。日付を指定した場合は指定時点の版を参照します。
 
+## CLI
+
+```sh
+uv run egov-law-mcp search-laws --title "民法" --limit 1
+uv run egov-law-mcp get-law-article --law-id 129AC0000000089 --article 709
+```
+
+結果は標準出力にUTF-8のJSONで出力します。コマンドの引数は `uv run egov-law-mcp search-laws --help` で確認できます。
+
+## Pythonライブラリ
+
+パッケージをインストールしたPython環境で、下記の非同期関数を直接呼び出せます。
+
+```python
+import asyncio
+
+from egov_law_mcp import search_laws
+
+result = asyncio.run(search_laws(title="民法", limit=1))
+print(result)
+```
+
+公開関数 `search_laws`、`get_law_article` を利用できます。イベントループがある環境では、関数を直接 `await` します。
+
 ## 出典と利用条件
 
 コードはMIT Licenseです。取得するデータの権利と利用条件は、API提供元と各データ提供機関の定めに従います。[公式API仕様](https://laws.e-gov.go.jp/api/2/swagger-ui/) · [利用案内](https://laws.e-gov.go.jp/)
