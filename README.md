@@ -2,6 +2,8 @@
 
 日本の法令を法令名や本文中の語句から探し、条文・附則・別表や改正履歴を確認できます。読み取り専用で、APIキーの設定は不要です。[uv](https://docs.astral.sh/uv/) と Git が必要です。Python 3.12以上に対応しています。
 
+[MCP登録](#mcpクライアントに登録する) · [CLI](#cliで使う) · [Pythonライブラリ](#pythonライブラリとして使う)
+
 ## MCPクライアントに登録する
 
 公開GitHubリポジトリから `uvx` で起動します。初回は依存関係の準備に時間がかかることがあります。
@@ -83,7 +85,7 @@ Codexのデスクトップアプリでは、設定の「MCP servers」でSTDIO�
 - 改正履歴はAPIが返した順にページ分けします。`next_offset` が `null` になるまで、同じ条件で続きを取得できます。
 - 法令XMLは `text` に既定で8,000文字、最大20,000文字ずつ返します。XMLタグの途中で区切られることがあるため、完全なXMLが必要な場合は `next_offset` が `null` になるまで同じセクションを取得し、`text` を順につなぎます。途中で版が変わらないよう、2ページ目以降は最初に返った `revision_info.law_revision_id` を指定してください。ページごとにAPIから選択範囲を取得し、返却時に分割します。
 
-## CLI
+## CLIで使う
 
 CLIやPythonライブラリを手元で使う場合は、リポジトリをクローンして準備します。
 
@@ -104,9 +106,15 @@ uv run egov-law-mcp get-law-text --law-id 322CO0000000016 --section appendix --l
 
 結果は標準出力にUTF-8のJSONで出力します。コマンドの引数は `uv run egov-law-mcp search-laws --help` で確認できます。
 
-## Pythonライブラリ
+## Pythonライブラリとして使う
 
-パッケージをインストールしたPython環境で、下記の非同期関数を直接呼び出せます。
+自分のPythonプロジェクト（`pyproject.toml` があるディレクトリ）で依存関係に追加します。
+
+```sh
+uv add "git+https://github.com/koizumikento/egov-law-mcp.git@main"
+```
+
+次のコードを `example.py` に保存し、同じディレクトリで `uv run python example.py` を実行します。
 
 ```python
 import asyncio
